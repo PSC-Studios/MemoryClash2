@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>📊 Statistiken</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to right, #9BCBEB, #c5b4e3);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 12px;
+      padding: 15px 25px;
+      margin: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    #backBtn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: #ddd;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: black;
+      font-weight: bold;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" id="backBtn">🔙 Zurück</a>
+  <h1>📊 Deine Statistiken</h1>
+  <div class="stat">🪙 Coins gesammelt: <span id="coins">0</span></div>
+  <div class="stat">🎮 Spiele gespielt: <span id="gamesPlayed">0</span></div>
+  <div class="stat">🎯 Erfolge: Bald verfügbar <span id="achievements"></span></div>
+  <div class="stat">📅 Letzter Login: <span id="lastLogin">Lädt...</span></div>
+
+
+  <script>
+  // Bestehende Werte anzeigen
+  document.getElementById("coins").innerText = localStorage.getItem("coins") || 0;
+  document.getElementById("gamesPlayed").innerText = localStorage.getItem("gamesPlayed") || 0;
+  document.getElementById("achievements").innerText = localStorage.getItem("achievements") || 0;
+
+  // Letzter Login
+  const now = new Date();
+  const formatted = now.toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const lastLogin = localStorage.getItem("lastLogin");
+  document.getElementById("lastLogin").innerText = lastLogin ? lastLogin : "Erster Login 🎉 ";
+
+  // Aktuelles Datum für das nächste Mal speichern
+  localStorage.setItem("lastLogin", formatted);
+</script>
+
+</body>
+</html>

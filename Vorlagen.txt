@@ -1,0 +1,6 @@
+ <div class="entry">
+      <h2>🎉 Version 1.4 – 1. November 2025</h2>
+      <p>• </p>
+      <p>• </p>
+      <p>• </p>
+    </div>

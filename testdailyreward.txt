@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Tägliche Belohnung</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to right, #e0c3fc, #8ec5fc);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+
+    #rewardMessage {
+      margin-top: 15px;
+      font-size: 18px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎁 Tägliche Belohnung</h1>
+    <p id="rewardMessage">Lade Daten...</p>
+    <button class="button" onclick="claimReward()">Belohnung abholen</button>
+    <button class="button" onclick="goBack()">Zurück</button>
+  </div>
+
+  <script>
+    function getCurrentDateString() {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    }
+
+    function updateMessage() {
+      const today = getCurrentDateString();
+      const lastClaimed = localStorage.getItem('lastDailyReward');
+
+      if (lastClaimed === today) {
+        document.getElementById("rewardMessage").textContent = "✅ Du hast deine Belohnung heute schon abgeholt!";
+      } else {
+        document.getElementById("rewardMessage").textContent = "🎁 Du kannst heute 50 Coins abholen!";
+      }
+    }
+
+    function claimReward() {
+      const today = getCurrentDateString();
+      const lastClaimed = localStorage.getItem('lastDailyReward');
+
+      if (lastClaimed === today) {
+        document.getElementById("rewardMessage").textContent = "✅ Du hast die Belohnung heute schon erhalten.";
+      } else {
+        let coins = parseInt(localStorage.getItem("coins") || "0");
+        coins += 50;
+        localStorage.setItem("coins", coins);
+        localStorage.setItem("lastDailyReward", today);
+        document.getElementById("rewardMessage").textContent = "🎉 Du hast 50 Coins erhalten!";
+      }
+    }
+
+    function goBack() {
+      window.location.href = "MemoryClash2.html";
+    }
+
+    window.addEventListener("load", updateMessage);
+  </script>
+</body>
+</html>
+
+
+
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Glücksrad - Tägliche Belohnung</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to right, #f9d423, #ff4e50);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #wheel {
+      width: 300px;
+      height: 300px;
+      border: 10px solid #fff;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+
+    .segment {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      top: 50%;
+      left: 50%;
+      transform-origin: 0% 0%;
+      background: #eee;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    #spinBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    #arrow {
+      width: 0; 
+      height: 0; 
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-bottom: 30px solid red;
+      position: absolute;
+      top: -30px;
+      left: calc(50% - 20px);
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎁 Tägliche Belohnung</h1>
+  <div id="wheelContainer">
+    <div id="arrow"></div>
+    <div id="wheel"></div>
+  </div>
+  <button id="spinBtn">Drehen</button>
+  <div id="result"></div>
+
+  <script>
+    const wheel = document.getElementById("wheel");
+    const result = document.getElementById("result");
+    const spinBtn = document.getElementById("spinBtn");
+
+    const rewards = [5, 10, 20, 25, 50, 75, 100, 500]; // Jackpot = 500
+    const colors = ["#f8b195", "#f67280", "#c06c84", "#6c5b7b", "#355c7d", "#99b898", "#feceab", "#ff847c"];
+
+    const segmentAngle = 360 / rewards.length;
+
+    // Erstelle Segmente
+    rewards.forEach((value, i) => {
+      const segment = document.createElement("div");
+      segment.className = "segment";
+      segment.style.transform = `rotate(${i * segmentAngle}deg) skewY(${90 - segmentAngle}deg)`;
+      segment.style.background = colors[i % colors.length];
+      segment.innerText = value + "💰";
+      wheel.appendChild(segment);
+    });
+
+    let spinning = false;
+
+    spinBtn.addEventListener("click", () => {
+      if (spinning) return;
+
+      if (localStorage.getItem("lastSpin")) {
+        const lastSpin = new Date(localStorage.getItem("lastSpin"));
+        const now = new Date();
+        const diff = now - lastSpin;
+        if (diff < 86400000) {
+          result.innerText = "Komm morgen wieder!";
+          return;
+        }
+      }
+
+      spinning = true;
+      const spins = 5 + Math.floor(Math.random() * 5); // 5-9 Umdrehungen
+      const index = Math.floor(Math.random() * rewards.length);
+      const angle = 360 * spins + (360 - index * segmentAngle - segmentAngle / 2);
+
+      wheel.style.transition = "transform 4s ease-out";
+      wheel.style.transform = `rotate(${angle}deg)`;
+
+      setTimeout(() => {
+        const won = rewards[index];
+        result.innerText = `Du hast ${won} Coins gewonnen! 🥳`;
+        const coins = parseInt(localStorage.getItem("coins") || "0");
+        localStorage.setItem("coins", coins + won);
+        localStorage.setItem("lastSpin", new Date());
+        spinning = false;
+      }, 4000);
+    });
+  </script>
+</body>
+</html>

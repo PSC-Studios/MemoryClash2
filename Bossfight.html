@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Bosskampf Deluxe</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    #game {
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin-top: 40px;
+    }
+
+    .card {
+      width: 80px;
+      height: 80px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      user-select: none;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    .card.hidden {
+      background: #ccc;
+    }
+
+    #status {
+      margin-top: 30px;
+      font-size: 20px;
+    }
+
+    #bossSkill {
+      margin-top: 10px;
+      font-style: italic;
+      color: #555;
+    }
+
+    #effect {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #d9534f;
+      min-height: 24px;
+      transition: opacity 0.5s;
+    }
+
+    button {
+      margin-top: 30px;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #3e9144;
+    }
+
+    .darkened {
+      filter: brightness(0.2);
+    }
+  </style>
+</head>
+<body>
+  <h1 id="bossName">Bosskampf</h1>
+  <div id="bossSkill"></div>
+  <div id="status">Dein Zug 🧠</div>
+  <div id="effect"></div>
+  <div id="game"></div>
+  <button onclick="goBack()">🏠 Zurück</button>
+
+  <script>
+    const bossName = localStorage.getItem("currentBoss") || "Mini-Bot";
+    document.getElementById("bossName").innerText = `👾 ${bossName}`;
+
+    const bossStats = {
+      "Mini-Bot": { memory: 0.4, power: "none" },
+      "Glitch-Master": { memory: 0.6, power: "shuffle" },
+      "Shadow AI": { memory: 0.8, power: "dark" },
+      "Memory King": { memory: 0.95, power: "copy" }
+    };
+
+    const bossSkill = bossStats[bossName] || bossStats["Mini-Bot"];
+    document.getElementById("bossSkill").innerText = 
+      `🧠 Boss-Level: ${(bossSkill.memory * 100).toFixed(0)}% | Fähigkeit: ${bossSkill.power}`;
+
+    const cards = ["🐶","🐱","🐭","🐹","🦊","🐻","🐼","🐸"];
+    let board = [...cards, ...cards].sort(() => Math.random() - 0.5);
+    const gameDiv = document.getElementById("game");
+    const statusDiv = document.getElementById("status");
+    const effectDiv = document.getElementById("effect");
+
+    let first = null, second = null, lock = false, playerTurn = true;
+    let playerScore = 0, bossScore = 0, revealed = [], lastPlayerMatch = null;
+    let darkTurns = 0;
+
+    function createBoard() {
+      board.forEach((symbol, i) => {
+        const div = document.createElement("div");
+        div.classList.add("card", "hidden");
+        div.dataset.symbol = symbol;
+        div.dataset.index = i;
+        div.onclick = () => flipCard(div);
+        gameDiv.appendChild(div);
+      });
+    }
+
+    function flipCard(card) {
+      if (lock || !playerTurn || !card.classList.contains("hidden") || darkTurns > 0) return;
+      card.classList.remove("hidden");
+      card.innerText = card.dataset.symbol;
+
+      if (!first) first = card;
+      else {
+        second = card;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      lock = true;
+      if (first.dataset.symbol === second.dataset.symbol) {
+        playerScore++;
+        revealed.push(first.dataset.symbol);
+        lastPlayerMatch = first.dataset.symbol;
+        resetTurn(true);
+      } else {
+        setTimeout(() => {
+          [first, second].forEach(c => {
+            c.classList.add("hidden");
+            c.innerText = "";
+          });
+          resetTurn(false);
+        }, 800);
+      }
+    }
+
+    function resetTurn(matched) {
+      first = null;
+      second = null;
+      lock = false;
+      if (!matched) {
+        playerTurn = false;
+        bossMove();
+      }
+      updateStatus();
+    }
+
+    function bossMove() {
+      statusDiv.innerText = "🤖 Boss ist dran...";
+      setTimeout(() => {
+        const hiddenCards = [...document.querySelectorAll(".card.hidden")];
+        if (hiddenCards.length === 0) return endGame();
+
+        const known = revealed.length > 0 && Math.random() < bossSkill.memory;
+        let choice1, choice2;
+
+        if (known) {
+          const knownSymbol = revealed[Math.floor(Math.random() * revealed.length)];
+          choice1 = hiddenCards.find(c => c.dataset.symbol === knownSymbol);
+          choice2 = hiddenCards.find(c => c !== choice1 && c.dataset.symbol === knownSymbol);
+        }
+
+        if (!choice1 || !choice2) {
+          choice1 = hiddenCards[Math.floor(Math.random() * hiddenCards.length)];
+          do { choice2 = hiddenCards[Math.floor(Math.random() * hiddenCards.length)]; }
+          while (choice1 === choice2);
+        }
+
+        choice1.classList.remove("hidden");
+        choice1.innerText = choice1.dataset.symbol;
+
+        setTimeout(() => {
+          choice2.classList.remove("hidden");
+          choice2.innerText = choice2.dataset.symbol;
+
+          if (choice1.dataset.symbol === choice2.dataset.symbol) {
+            bossScore++;
+            revealed.push(choice1.dataset.symbol);
+            triggerBossPower();
+            setTimeout(() => bossMove(), 800);
+          } else {
+            setTimeout(() => {
+              [choice1, choice2].forEach(c => {
+                c.classList.add("hidden");
+                c.innerText = "";
+              });
+              playerTurn = true;
+              updateStatus();
+            }, 900);
+          }
+        }, 700);
+      }, 900);
+    }
+
+    function triggerBossPower() {
+      if (bossSkill.power === "none") return;
+      const chance = Math.random();
+      if (chance < 0.5) return; // Nur 50 % Chance
+
+      switch (bossSkill.power) {
+        case "shuffle":
+          effect("⚡ Glitch-Master vertauscht Karten!");
+          shuffleBoard();
+          break;
+        case "dark":
+          effect("🌑 Shadow AI verdunkelt die Karten für 3 Züge!");
+          darkenBoard(3);
+          break;
+        case "copy":
+          if (lastPlayerMatch) {
+            effect("👑 Memory King kopiert deinen letzten Zug!");
+            copyLastPlayerMove();
+          }
+          break;
+      }
+    }
+
+    function shuffleBoard() {
+      const symbols = [...document.querySelectorAll(".card")].map(c => c.dataset.symbol);
+      const shuffled = symbols.sort(() => Math.random() - 0.5);
+      document.querySelectorAll(".card").forEach((c, i) => c.dataset.symbol = shuffled[i]);
+    }
+
+    function darkenBoard(turns) {
+      darkTurns = turns;
+      document.querySelectorAll(".card.hidden").forEach(c => c.classList.add("darkened"));
+      let interval = setInterval(() => {
+        darkTurns--;
+        if (darkTurns <= 0) {
+          document.querySelectorAll(".card").forEach(c => c.classList.remove("darkened"));
+          clearInterval(interval);
+          effect("💡 Die Dunkelheit verschwindet!");
+        }
+      }, 1500);
+    }
+
+    function copyLastPlayerMove() {
+      const hiddenCards = [...document.querySelectorAll(".card.hidden")];
+      const match = hiddenCards.filter(c => c.dataset.symbol === lastPlayerMatch);
+      if (match.length >= 2) {
+        match[0].classList.remove("hidden");
+        match[1].classList.remove("hidden");
+        match[0].innerText = match[0].dataset.symbol;
+        match[1].innerText = match[1].dataset.symbol;
+        bossScore++;
+      }
+    }
+
+    function effect(text) {
+      effectDiv.innerText = text;
+      effectDiv.style.opacity = 1;
+      setTimeout(() => effectDiv.style.opacity = 0, 2500);
+    }
+
+    function updateStatus() {
+      statusDiv.innerText = `🧠 Du: ${playerScore} | 🤖 Boss: ${bossScore}`;
+      if (document.querySelectorAll(".card.hidden").length === 0) endGame();
+    }
+
+    function endGame() {
+      lock = true;
+      const result = playerScore > bossScore ? "🎉 Sieg!" : "😔 Niederlage";
+      statusDiv.innerText = `${result} Du: ${playerScore} | Boss: ${bossScore}`;
+
+      if (playerScore > bossScore) {
+        let trophies = parseInt(localStorage.getItem("trophies") || "0");
+        localStorage.setItem("trophies", trophies + 5);
+        alert("🏆 Du hast 5 Trophäen verdient!");
+      }
+    }
+
+    function goBack() {
+      window.location.href = "Bossmodus.html";
+    }
+
+    createBoard();
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Memory Spiel</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: var(--background, linear-gradient(to right, #a1ffce, #faffd1));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-top: 10px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+
+    .card {
+      font-size: clamp(20px, 4vw, 36px);
+      width: clamp(50px, 8vw, 80px);
+      height: clamp(50px, 8vw, 80px);
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      border: 2px solid #888;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+    }
+
+    .matched {
+      background: lightgreen !important;
+      cursor: default;
+    }
+
+    #gameOver {
+      font-size: 24px;
+      margin-top: 20px;
+      color: green;
+    }
+
+    .button {
+      padding: 10px 20px;
+      margin-top: 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Memory Spiel</h1>
+  <div id="gameContainer" class="grid"></div>
+  <div id="gameOver" style="display:none;">🎉 Spiel beendet!</div>
+  <button class="button" onclick="goBack()">🔙 Zurück</button>
+
+  <script>
+    // Lokale Daten laden
+    const emojiPackName = localStorage.getItem("emojiPack") || "Animals 🐶"; // Testweise Animals
+    const gridSize = localStorage.getItem("gridSize") || "4x4";
+    const cardBackName = localStorage.getItem("cardBack") || "🔵 Blue";
+    const backgroundName = localStorage.getItem("background") || "";
+
+    const emojiPacks = {
+      "Smileys 😀": ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇"],
+      "Animals 🐶": ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯"],
+      "Food 🍕": ["🍎", "🍌", "🍇", "🍓", "🍕", "🍔", "🍟", "🌭", "🍿", "🍩"]
+    };
+
+    const backgrounds = {
+      "Sunset": "linear-gradient(to right, #ff7e5f, #feb47b)",
+      "Ocean": "linear-gradient(to right, #43cea2, #185a9d)",
+      "Mint": "linear-gradient(to right, #a1ffce, #faffd1)",
+      "Dark": "#222",
+      "Blue": "#4d79ff"
+    };
+
+    const cardBacks = {
+      "🔵 Blue": "🔵",
+      "🔴 Red": "🔴",
+      "🟢 Green": "🟢",
+      "🧊 Ice": "🧊",
+      "💎 Diamond": "💎"
+    };
+
+    // Hintergrund anwenden
+    if (backgrounds[backgroundName]) {
+      document.body.style.setProperty("--background", backgrounds[backgroundName]);
+    }
+
+    // Emoji-Pack laden
+    const fallback = ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇"];
+    const symbols = emojiPacks[emojiPackName] || fallback;
+
+    const [cols, rows] = gridSize.split("x").map(n => parseInt(n));
+    const totalCards = cols * rows;
+    const pairsNeeded = totalCards / 2;
+
+    let selected = symbols.slice(0, pairsNeeded);
+    while (selected.length < pairsNeeded) {
+      selected = [...selected, ...symbols];
+    }
+    selected = selected.slice(0, pairsNeeded);
+
+    const shuffled = [...selected, ...selected].sort(() => 0.5 - Math.random());
+    const cardBack = cardBacks[cardBackName] || "❔";
+
+    const container = document.getElementById("gameContainer");
+    container.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+
+    let firstCard = null;
+    let lock = false;
+    let matches = 0;
+
+    shuffled.forEach(symbol => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.dataset.symbol = symbol;
+      div.innerText = cardBack;
+
+      div.addEventListener("click", () => {
+        if (lock || div.classList.contains("matched") || div.innerText === symbol) return;
+
+        div.innerText = symbol;
+
+        if (!firstCard) {
+          firstCard = div;
+        } else {
+          lock = true;
+          setTimeout(() => {
+            if (firstCard.dataset.symbol === div.dataset.symbol) {
+              firstCard.classList.add("matched");
+              div.classList.add("matched");
+              matches++;
+              if (matches === pairsNeeded) finishGame();
+            } else {
+              firstCard.innerText = cardBack;
+              div.innerText = cardBack;
+            }
+            firstCard = null;
+            lock = false;
+          }, 800);
+        }
+      });
+
+      container.appendChild(div);
+    });
+
+    function finishGame() {
+      document.getElementById("gameOver").style.display = "block";
+      let coins = parseInt(localStorage.getItem("coins") || "0");
+      localStorage.setItem("coins", coins + 50);
+
+      let games = parseInt(localStorage.getItem("gamesPlayed") || "0");
+      localStorage.setItem("gamesPlayed", games + 1);
+    }
+
+    function goBack() {
+      window.location.href = "MemoryClash2.html";
+    }
+  </script>
+</body>
+</html>

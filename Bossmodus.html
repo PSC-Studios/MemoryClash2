@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bossmodus</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .boss-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .boss-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: 0.3s;
+    }
+
+    .boss-card.locked {
+      opacity: 0.5;
+      filter: grayscale(1);
+    }
+
+    .boss-card h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .boss-card p {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .back-btn {
+      margin-top: 30px;
+      background-color: #555;
+    }
+
+    .back-btn:hover {
+      background-color: #333;
+    }
+
+    .locked-btn {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>👾 Bossmodus</h1>
+  <div class="boss-container" id="bossContainer"></div>
+
+  <button class="back-btn" onclick="goHome()">🏠 Zurück</button>
+
+  <script>
+    // Beispiel-Bosse
+    const bosses = [
+      { name: "Mini-Bot", desc: "Ein einfacher Gegner für Einsteiger.", requiredTrophies: 0 },
+      { name: "Glitch-Master", desc: "Verwirrt dich mit verdrehten Karten!", requiredTrophies: 10 },
+      { name: "Shadow AI", desc: "Extrem schnell – macht kaum Fehler.", requiredTrophies: 25 },
+      { name: "Memory King", desc: "Das ultimative Gedächtnismonster!", requiredTrophies: 50 },
+    ];
+
+    const container = document.getElementById("bossContainer");
+    const trophies = parseInt(localStorage.getItem("trophies") || "0");
+
+    bosses.forEach((boss, index) => {
+      const card = document.createElement("div");
+      card.classList.add("boss-card");
+
+      const title = document.createElement("h2");
+      title.textContent = boss.name;
+
+      const desc = document.createElement("p");
+      desc.textContent = boss.desc;
+
+      const info = document.createElement("p");
+      info.textContent = `🔓 Freischaltung ab ${boss.requiredTrophies} 🏆`;
+
+      const btn = document.createElement("button");
+      if (trophies >= boss.requiredTrophies) {
+        btn.textContent = "Kämpfen!";
+        btn.onclick = () => startBoss(boss.name);
+      } else {
+        btn.textContent = "Gesperrt";
+        btn.classList.add("locked-btn");
+        card.classList.add("locked");
+      }
+
+      card.appendChild(title);
+      card.appendChild(desc);
+      card.appendChild(info);
+      card.appendChild(btn);
+      container.appendChild(card);
+    });
+
+    function startBoss(bossName) {
+      // Beispiel: Weiterleitung zum Boss-Spiel
+      alert(`🧠 Du kämpfst jetzt gegen ${bossName}!`);
+      localStorage.setItem("currentBoss", bossName);
+      window.location.href = "bossfight.html"; // Hier kannst du dein Boss-Spiel verlinken
+    }
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

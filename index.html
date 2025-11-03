@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Clash 2</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: var(--background, linear-gradient(to right, #a1ffce, #faffd1));
+      transition: background 0.5s;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 10px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+    }
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .popup-content {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      max-height: 90vh;
+      width: 80%;
+      overflow-y: auto;
+    }
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .shop-item {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .shop-item.owned {
+      border-color: green;
+      background-color: #e0ffe0;
+    }
+    .section-title {
+      font-size: 20px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      color: #333;
+
+.button:hover {
+  background-color: #5bf11f;
+  
+}
+
+
+
+
+
+
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Memory Clash</h1>
+  <div id="coinDisplay">💰 Coins: <span id="coins">0</span></div>
+  <div id="statDisplay">📊 Spiele gespielt: <span id="gamesPlayed">0</span></div>
+
+  <button class="button" onclick="startGame()">▶️ Spiel starten</button>
+  <button class="button" onclick="openShop()">🛒 Shop öffnen</button>
+<button onclick="window.location.href='DailyReward.html'" class="button">🎁 Tägliche Belohnung</button>
+<div class="menu">
+  <!-- andere Buttons -->
+  <button class="button" onclick="window.location.href='statistik.html'">📊 Statistiken</button>
+<button class="button" onclick="window.location.href='Trophaeenpfad.html'">🏆 Trophäen</button>
+<button class="button" onclick="window.location.href='daily.html'">🎯 Daily Quests</button>
+
+
+</div>
+
+
+<div></div>
+<button class= "button" onclick="window.location.href='Bossmodus.html'"> Bossmodus 🤵</button> 
+<button class= "button" onclick="window.location.href='specials.html'"> Spezialmodus 👻</button> 
+<button class= "button" onclick="window.location.href='Fortschritt.html'"> Bald verfügbar!🤖</button> 
+</div>
+<div>
+<button class="button" onclick="window.location.href='News.html'"> Neuerungen 📰 </button>
+</div>
+  <div id="popup" class="popup" style="display:none"> 
+    <div class="popup-content" id="popupContent"></div>
+  </div>
+
+  <script>
+    let coins = parseInt(localStorage.getItem("coins")) || 500;
+    let gamesPlayed = parseInt(localStorage.getItem("gamesPlayed")) || 0;
+    const ownedItems = JSON.parse(localStorage.getItem("ownedItems") || '{}');
+    let selectedBackground = localStorage.getItem("background") || "";
+
+    const backgrounds = [
+      { name: "Red",value: "Red", realValue:"	#ee2c2c",price: 50 },
+      { name: "Blue", value: "Blue", realValue:"#4d79ff", price: 50},
+      { name: "Babyblau", value: "Baby Blau" ,realValue: "#a9bff9", price: 75 },
+      {name: "neon-grün", value: "🟢 Neon-Grün", realValue:"#27F584",price: 50},
+      {name: "Aquamarin", value: "🆒 Aquamarin", realValue:"	#66cdaa", price: 50},
+      { name: "Sunset", value: "🌇 Sunset", realValue: "linear-gradient(to right, #ff7e5f, #feb47b)", price: 200 },
+      { name: "Ocean", value: "🌊 Ocean", realValue: "linear-gradient(to right, #43cea2, #185a9d)", price: 250 },
+      { name: "Peach", value: "🍑 Peach", realValue: "linear-gradient(to right, #ffecd2, #fcb69f)", price: 200 },
+      { name: "Mint", value: "🌿 Mint", realValue: "linear-gradient(to right, #a1ffce, #faffd1)", price: 150 },
+      { name: "Dark", value: "🖤 Dark", realValue: "#222", price: 50 },
+      { name: "Lavender", value: "💜 Lavender", realValue: "#e0bbff", price: 50 },
+      { name: "Fire", value: "🔥 Fire", realValue: "linear-gradient(to right, #f12711, #f5af19)", price: 300 },
+      { name: "Sky", value: "🌤️ Sky", realValue: "linear-gradient(to right, #00c6ff, #0072ff)", price: 250 },
+      {name: "Rainbow1", value: "🌈 Rainbow", realValue:"linear-gradient(90deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #8B00FF);", price: 150},
+    ];
+
+    const emojis = [
+      { name: "Smileys 😀", value: "😀😃😄😁😆😅😂🤣😊😇", price: 0 },
+      { name: "Animals 🐶", value: "🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯", price: 0 },
+      { name: "Food 🍕", value: "🍎🍌🍇🍓🍕🍔🍟🌭🍿🍩", price: 0 },
+      { name: "Sport ⚽", value: "⚽🏀🏈⚾🎾🏐🏉🎱🏓🏸", price: 0 },
+      { name: "Weather ☀️", value: "☀️🌤️⛅🌥️🌦️🌧️🌨️🌩️🌪️🌫️", price: 0 },
+      { name: "Tech 💻", value: "💻🖥️🖨️⌨️🖱️💾📱📲🔋🔌", price: 0 },
+      { name: "Nature 🌳", value: "🌲🌳🌴🌵🌾🌿🍀🍁🍂🍃", price: 0 },
+      { name: "Space 🌌", value: "🌕🌖🌗🌘🌑🌒🌓🌔🌙⭐", price: 0 },
+      { name: "Music 🎵", value: "🎵🎶🎼🎤🎧🎷🎸🎹🥁🎺", price: 0 },
+      { name: "Hearts ❤️", value: "❤️🧡💛💚💙💜🖤🤍🤎💖", price: 0 },
+      { name: "Uhren 🕛", value: "🕧🕐🕜🕑🕝🕡🕕🕠🕔🕟🕓", price: 0 },
+      { name:  "Büro 📐", value: "📉📂🗂📅📆🗒🗓📇📈📁💼📝🖍",price: 0},
+      { name: "Hände 💪", value: "👋🤚🖐✋️🖖👌🤌🤏✌️🤞🤟🤘🤙",price: 0 },   
+      { name: "Fahrzeuge 🚙", value: "🚞🚋🚌🚍🚎🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙",price: 0 },   
+    ];
+
+
+
+    const cardBacks = [
+      { name: "🔵 Blue", value: "🔵", price: 50 },
+      { name: "🔴 Red", value: "🔴", price: 50 },
+      { name: "🟢 Green", value: "🟢", price: 50 },
+      { name: "🟡 Yellow", value: "🟡", price: 50 },
+      { name: "🟣 Purple", value: "🟣", price: 50 },
+      { name: "💎 Diamond", value: "💎", price: 100 },
+      { name: "🔥 Fireball", value: "🔥", price: 150 },
+      { name: "🌈 Rainbow", value: "🌈", price: 200 },
+      { name: "💀 Skull", value: "💀", price: 150 },
+      { name: "🧊 Ice", value: "🧊", price: 100 },
+      { name: "🐰 Rabbit", value: "🐰", price: 150 },
+      { name: "🐼 Panda", value: "🐼", price: 150 },
+      { name: " Lime Heart 💚", value: "💚", price: 200 }
+
+
+
+
+    ];
+
+    function updateCoins() {
+      document.getElementById("coins").innerText = coins;
+      localStorage.setItem("coins", coins);
+    }
+
+    function updateStats() {
+      document.getElementById("gamesPlayed").innerText = gamesPlayed;
+      localStorage.setItem("gamesPlayed", gamesPlayed);
+    }
+
+    function applyBackground(name) {
+      const item = backgrounds.find(b => b.name === name);
+      if (!item || !ownedItems[name]) return;
+      const bgValue = item.realValue || item.value;
+      document.body.style.setProperty('--background', bgValue);
+      localStorage.setItem("background", name);
+    }
+
+    function openPopup(html) {
+      document.getElementById("popup").style.display = 'flex';
+      document.getElementById("popupContent").innerHTML = html;
+    }
+
+    function closePopup() {
+      document.getElementById("popup").style.display = 'none';
+    }
+
+    function buyItem(type, name, price) {
+      if (ownedItems[name]) {
+        if (type === "background") applyBackground(name);
+        if (type === "cardBack") localStorage.setItem("cardBack", name);
+        closePopup();
+        return;
+      }
+      if (coins >= price) {
+        coins -= price;
+        ownedItems[name] = true;
+        localStorage.setItem("ownedItems", JSON.stringify(ownedItems));
+        updateCoins();
+        if (type === "background") applyBackground(name);
+        if (type === "cardBack") localStorage.setItem("cardBack", name);
+        alert(`✅ ${name} für ${price} Coins gekauft!`);
+        openShop(); // neu laden
+      } else {
+        alert("Nicht genug Coins!");
+      }
+    }
+
+    function openShop() {
+      let html = `<h2>🛒 Shop</h2>`;
+      html += `<div class='section-title'>🌄 Hintergründe</div><div class='item-grid'>`;
+      backgrounds.forEach(item => {
+        const owned = ownedItems[item.name];
+        html += `<div class='shop-item ${owned ? 'owned' : ''}' onclick="buyItem('background','${item.name}',${item.price})">
+          <div>${item.value}</div>
+          ${!owned ? `<div>💰 ${item.price}</div>` : "<div>✅ Gekauft</div>"}
+        </div>`;
+      });
+      html += `</div><div class='section-title'>🃏 Kartenrücken</div><div class='item-grid'>`;
+      cardBacks.forEach(item => {
+        const owned = ownedItems[item.name];
+        html += `<div class='shop-item ${owned ? 'owned' : ''}' onclick="buyItem('cardBack','${item.name}',${item.price})">
+          <div>${item.value}</div>
+          ${!owned ? `<div>💰 ${item.price}</div>` : "<div>✅ Gekauft</div>"}
+        </div>`;
+      });
+      html += `</div><br><button class='button' onclick='closePopup()'>Schließen</button>`;
+      openPopup(html);
+    }
+
+    function startGame() {
+      let html = `<h2>📐 Wähle Rastergröße</h2><div class='item-grid'>`;
+      ["4x4", "6x6", "8x8"].forEach(size => {
+        html += `<div class='shop-item' onclick="selectEmojiPack('${size}')">${size}</div>`;
+      });
+      html += `</div><br><button class='button' onclick='closePopup()'>Abbrechen</button>`;
+      openPopup(html);
+    }
+
+    function selectEmojiPack(gridSize) {
+      let html = `<h2>😊 Emoji Pack wählen</h2><div class='item-grid'>`;
+      emojis.forEach(pack => {
+        const owned = ownedItems[pack.name];
+        html += `<div class='shop-item ${owned ? 'owned' : ''}' onclick="finishGameStart('${gridSize}', '${pack.name}', ${pack.price})">
+          <div>${pack.name}</div>
+          <div style="font-size:24px">${pack.value}</div>
+          ${!owned ? `<div>💰 ${pack.price}</div>` : "<div>✅ Gekauft</div>"}
+        </div>`;
+      });
+      html += `</div><br><button class='button' onclick='closePopup()'>Abbrechen</button>`;
+      openPopup(html);
+    }
+
+    function finishGameStart(size, packName, price) {
+      if (!ownedItems[packName]) {
+        if (coins >= price) {
+          coins -= price;
+          ownedItems[packName] = true;
+          updateCoins();
+        } else {
+          alert("Nicht genug Coins!");
+          return;
+        }
+      }
+      localStorage.setItem("gridSize", size);
+      localStorage.setItem("emojiPack", packName);
+      gamesPlayed++;
+      updateStats();
+      closePopup();
+      window.location.href = "Gamememory.html";
+    }
+
+    updateCoins();
+    updateStats();
+    applyBackground(selectedBackground);
+  </script>
+  <div id="updateTimer" style="margin-top: 40px; font-size: 18px; color: #333;"></div>
+
+<script>
+  // Nächstes Update-Datum festlegen (Beispiel: 15. Juni 2025, 12:00 Uhr)
+  const updateDate = new Date("2025-12-01T12:00:00");
+
+  function updateCountdown() {
+    const now = new Date();
+    const diff = updateDate - now;
+
+    if (diff <= 0) {
+      document.getElementById("updateTimer").innerText = "🚀 Neues Update ist gleich verfügbar!";
+      return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    document.getElementById("updateTimer").innerText =
+      `🕒 Nächstes Update in: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+  }
+
+  updateCountdown(); // Direkt aufrufen
+  setInterval(updateCountdown, 1000); // Jede Sekunde aktualisieren
+</script>
+<div id="difficulty-popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+  background-color:#222; color:white; padding:20px; border-radius:10px; z-index:1000;">
+  <h3>Wähle Schwierigkeitsgrad</h3>
+  <label><input type="radio" name="diff" value="leicht" checked> Leicht</label><br>
+  <label><input type="radio" name="diff" value="mittel"> Mittel</label><br>
+  <label><input type="radio" name="diff" value="schwer"> Schwer</label><br><br>
+  <button onclick="startGameWithDifficulty()">Starten</button>
+  <button onclick="closeDifficultyMenu()">Abbrechen</button>
+</div>
+<script>
+  function showDifficultyMenu() {
+    document.getElementById("difficulty-popup").style.display = "block";
+  }
+
+  function closeDifficultyMenu() {
+    document.getElementById("difficulty-popup").style.display = "none";
+  }
+
+  function startGameWithDifficulty() {
+    const diff = document.querySelector('input[name="diff"]:checked').value;
+    localStorage.setItem("difficulty", diff);
+    window.location.href = "Gamememory.html";
+  }
+</script>
+
+</body>
+</html>
