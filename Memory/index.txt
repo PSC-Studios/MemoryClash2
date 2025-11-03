@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Lade Memory Clash 2...</title>
+  <meta http-equiv="refresh" content="0; URL=MemoryClash2.html">
+</head>
+<body>
+  <p>🔄 Lade Memory Clash 2… Falls nichts passiert, <a href="MemoryClash2.html">hier klicken</a>.</p>
+</body>
+</html>

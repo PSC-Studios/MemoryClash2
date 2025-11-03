@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Shop</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: white;
+      background: url("background-shop.png") no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1, h2 {
+      color: #ffd700;
+      margin-bottom: 10px;
+    }
+
+    .coins-display {
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: lightgreen;
+    }
+
+    .item-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .shop-item {
+      background-color: rgba(0, 0, 0, 0.7);
+      border: 2px solid white;
+      border-radius: 10px;
+      padding: 10px;
+      width: 120px;
+      cursor: pointer;
+      transition: 0.3s;
+      position: relative;
+    }
+
+    .shop-item:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px gold;
+    }
+
+    .owned {
+      border-color: limegreen;
+    }
+
+    .active {
+      outline: 3px solid cyan;
+    }
+
+    .limited::after {
+      content: "Limitiert";
+      color: red;
+      font-size: 10px;
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: black;
+      padding: 2px 5px;
+      border: 1px solid red;
+      border-radius: 5px;
+    }
+
+    .price {
+      font-size: 14px;
+      color: #ccc;
+      margin-top: 5px;
+    }
+
+    .back-button {
+      margin-top: 30px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+
+    .back-button:hover {
+      background: #444;
+    }
+
+    .item-name {
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛒 Shop</h1>
+  <div class="coins-display" id="coinCount">💰 Coins: 0</div>
+
+  <h2>🖼 Hintergründe</h2>
+  <div class="item-container" id="backgrounds"></div>
+
+  <h2>🃏 Kartenrücken</h2>
+
+
+
+  <button class="back-button" onclick="window.location.href='index.html'">🔙 Zurück</button>
+ 
+  <script>
+  const backgrounds = [
+    { id: 'bg1', name: '🌄 Natur', cost: 100 },
+    { id: 'bg2', name: '🌌 Galaxy', cost: 200 },
+    { id: 'bg3', name: '🎃 Halloween', cost: 300, limited: true }
+  ];
+
+  const cardBacks = [
+    { id: 'cb1', name: '❤️ Herz', cost: 100 },
+    { id: 'cb2', name: '🔥 Feuer', cost: 150 },
+    { id: 'cb3', name: '🎅 Weihnachten', cost: 250, limited: true }
+  ];
+
+  function getCoins() {
+    return parseInt(localStorage.getItem('coins') || '0');
+  }
+
+  function updateCoinsDisplay() {
+    document.getElementById("coinCount").textContent = "💰 Coins: " + getCoins();
+  }
+
+  function renderItems(items, containerId, type) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    const ownedItems = JSON.parse(localStorage.getItem('ownedItems') || '[]');
+    const activeBackground = localStorage.getItem('activeBackground');
+    const activeCardBack = localStorage.getItem('activeCardBack');
+
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'shop-item';
+      if (item.limited) div.classList.add('limited');
+      if (ownedItems.includes(item.id)) div.classList.add('owned');
+      if ((type === 'bg' && item.id === activeBackground) || (type === 'cb' && item.id === activeCardBack)) {
+        div.classList.add('active');
+      }
+
+      const name = document.createElement('div');
+      name.className = 'item-name';
+      name.textContent = item.name;
+      div.appendChild(name);
+
+      const price = document.createElement('div');
+      price.className = 'price';
+      price.textContent = item.cost + ' Coins';
+      div.appendChild(price);
+
+      div.onclick = () => {
+        let coins = getCoins();
+        if (!ownedItems.includes(item.id)) {
+          if (coins >= item.cost) {
+            coins -= item.cost;
+            localStorage.setItem('coins', coins);
+            ownedItems.push(item.id);
+            localStorage.setItem('ownedItems', JSON.stringify(ownedItems));
+            alert(item.name + ' gekauft!');
+          } else {
+            alert('Nicht genug Coins!');
+            return;
+          }
+        }
+
+        if (type === 'bg') {
+          localStorage.setItem('activeBackground', item.id);
+        } else {
+          localStorage.setItem('activeCardBack', item.id);
+        }
+
+        updateCoinsDisplay();
+        renderAll();
+      };
+
+      container.appendChild(div);
+    });
+  }
+
+  function renderAll() {
+    renderItems(backgrounds, 'backgrounds', 'bg');
+    renderItems(cardBacks, 'cardBacks', 'cb');
+  }
+
+  // 🧪 Coins beim ersten Laden setzen
+  if (localStorage.getItem('coins') === null) {
+    localStorage.setItem('coins', '500');
+  }
+
+  updateCoinsDisplay();
+  renderAll();
+</script>
+
+</body>
+</html>

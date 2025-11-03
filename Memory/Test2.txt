@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Clash 2</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: var(--background, linear-gradient(to right, #a1ffce, #faffd1));
+      transition: background 0.5s;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 10px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+    }
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .popup-content {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+    }
+    .shop-item {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Memory Clash</h1>
+  <div id="coinDisplay">💰 Coins: <span id="coins">0</span></div>
+
+  <button class="button" onclick="startGame()">▶️ Spiel starten</button>
+  <button class="button" onclick="openEmojiPopup()">😊 Emoji Pack</button>
+  <button class="button" onclick="openShop()">🛒 Shop öffnen</button>
+
+  <div id="popup" class="popup" style="display:none">
+    <div class="popup-content" id="popupContent"></div>
+  </div>
+
+  <script>
+    let coins = parseInt(localStorage.getItem("coins")) || 500;
+    const ownedItems = JSON.parse(localStorage.getItem("ownedItems") || '{}');
+    let selectedEmojiPack = localStorage.getItem("emojiPack") || "Smileys 😀";
+    let selectedBackground = localStorage.getItem("background") || "";
+
+    const backgrounds = [
+      { name: "Red", value: "#ff4d4d", price: 50 },
+      { name: "Blue", value: "#4d79ff", price: 50 },
+      { name: "Sunset", value: "🌇 Sunset", realValue: "linear-gradient(to right, #ff7e5f, #feb47b)", price: 200 },
+      { name: "Ocean", value: "🌊 Ocean", realValue: "linear-gradient(to right, #43cea2, #185a9d)", price: 250 },
+      { name: "Peach", value: "🍑 Peach", realValue: "linear-gradient(to right, #ffecd2, #fcb69f)", price: 200 },
+      { name: "Mint", value: "🌿 Mint", realValue: "linear-gradient(to right, #a1ffce, #faffd1)", price: 150 },
+      { name: "Dark", value: "🖤 Dark", realValue: "#222", price: 50 },
+      { name: "Lavender", value: "💜 Lavender", realValue: "#e0bbff", price: 50 },
+      { name: "Fire", value: "🔥 Fire", realValue: "linear-gradient(to right, #f12711, #f5af19)", price: 300 },
+      { name: "Sky", value: "🌤️ Sky", realValue: "linear-gradient(to right, #00c6ff, #0072ff)", price: 250 }
+    ];
+
+    const emojis = [
+      { name: "Smileys 😀", value: "😀😃😄😁😆😅😂🤣😊😇", price: 100 },
+      { name: "Animals 🐶", value: "🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯", price: 100 },
+      { name: "Food 🍕", value: "🍎🍌🍇🍓🍕🍔🍟🌭🍿🍩", price: 100 },
+      { name: "Sport ⚽", value: "⚽🏀🏈⚾🎾🏐🏉🎱🏓🏸", price: 100 },
+      { name: "Weather ☀️", value: "☀️🌤️⛅🌥️🌦️🌧️🌨️🌩️🌪️🌫️", price: 100 },
+      { name: "Tech 💻", value: "💻🖥️🖨️⌨️🖱️💾📱📲🔋🔌", price: 100 },
+      { name: "Nature 🌳", value: "🌲🌳🌴🌵🌾🌿🍀🍁🍂🍃", price: 100 },
+      { name: "Space 🌌", value: "🌕🌖🌗🌘🌑🌒🌓🌔🌙⭐", price: 100 },
+      { name: "Music 🎵", value: "🎵🎶🎼🎤🎧🎷🎸🎹🥁🎺", price: 100 },
+      { name: "Hearts ❤️", value: "❤️🧡💛💚💙💜🖤🤍🤎💖", price: 100 }
+    ];
+
+    function updateCoins() {
+      document.getElementById("coins").innerText = coins;
+      localStorage.setItem("coins", coins);
+    }
+
+    function applyBackground(name) {
+      const item = backgrounds.find(b => b.name === name);
+      if (!item || !ownedItems[name]) return;
+      const bgValue = item.realValue || item.value;
+      document.body.style.setProperty('--background', bgValue);
+      localStorage.setItem("background", name);
+    }
+
+    function openPopup(items, key, title) {
+      document.getElementById("popup").style.display = 'flex';
+      const content = document.getElementById("popupContent");
+      content.innerHTML = `<h2>${title}</h2><div class='item-grid'>`;
+      items.forEach(item => {
+        const owned = ownedItems[item.name];
+        let action = `buyItem('${key}','${item.name}',${item.price})`;
+        if (key === 'shop' && owned && backgrounds.find(b => b.name === item.name)) {
+          action = `selectBackground('${item.name}')`;
+        }
+        content.innerHTML += `
+          <div class='shop-item' onclick="${action}">
+            <div>${item.name}</div>
+            <div style="font-size:24px">${item.value}</div>
+            <div>${owned ? (selectedBackground === item.name ? '🎯 Aktiv' : '✅ Gekauft') : '💰 ' + item.price}</div>
+          </div>
+        `;
+      });
+      content.innerHTML += `</div><br><button class='button' onclick='closePopup()'>Schließen</button>`;
+    }
+
+    function selectBackground(name) {
+      applyBackground(name);
+      closePopup();
+    }
+
+    function buyItem(type, name, price) {
+      if (ownedItems[name]) {
+        alert("Schon gekauft!");
+        if (type === "emoji") localStorage.setItem("emojiPack", name);
+        return;
+      }
+      if (coins >= price) {
+        coins -= price;
+        ownedItems[name] = true;
+        localStorage.setItem("ownedItems", JSON.stringify(ownedItems));
+        updateCoins();
+        alert(`✅ ${name} für ${price} Coins gekauft!`);
+        if (type === 'shop' && backgrounds.find(b => b.name === name)) {
+          applyBackground(name);
+        }
+        closePopup();
+      } else {
+        alert("Nicht genug Coins!");
+      }
+    }
+
+    function closePopup() {
+      document.getElementById("popup").style.display = 'none';
+    }
+
+    function openShop() {
+      openPopup(backgrounds.concat(emojis), 'shop', '🎨 Shop');
+    }
+
+    function openEmojiPopup() {
+      openPopup(emojis, 'emoji', '😊 Emoji Pack wählen');
+    }
+
+    function startGame() {
+      const sizes = ["4x4", "6x6", "8x8", "10x10", "12x12"];
+      document.getElementById("popup").style.display = 'flex';
+      const content = document.getElementById("popupContent");
+      content.innerHTML = `<h2>📐 Wähle Rastergröße</h2><div class='item-grid'>`;
+      sizes.forEach(size => {
+        content.innerHTML += `<div class='shop-item' onclick="selectGridSize('${size}')">${size}</div>`;
+      });
+      content.innerHTML += `</div><br><button class='button' onclick='closePopup()'>Abbrechen</button>`;
+    }
+
+    function selectGridSize(size) {
+      localStorage.setItem("gridSize", size);
+      closePopup();
+      window.location.href = "Gamememory.html";
+    }
+
+    updateCoins();
+    applyBackground(selectedBackground);
+  </script>
+</body>
+</html>
+
+
+
+
+
+GEHT:
+
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Clash</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #eee;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin: 20px 0 10px;
+    }
+    .stats {
+      margin-bottom: 20px;
+    }
+    .grid {
+      display: grid;
+      gap: 10px;
+      justify-content: center;
+      align-content: center;
+    }
+    .card {
+      width: 50px;
+      height: 50px;
+      background-color: #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      user-select: none;
+      border-radius: 10px;
+    }
+    .card.revealed {
+      background-color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Memory Clash Spiel</h1>
+  <div class="stats">
+    💰 Coins: <span id="coins">0</span><br />
+    📊 Spiele gespielt: <span id="gamesPlayed">0</span>
+  </div>
+  <div id="game" class="grid"></div>
+
+  <script>
+    const emojiPacks = {
+      "Smileys 😀": ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇"],
+      "Tiere 🐶": ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯"],
+      "Natur 🌿": ["🌸", "🌼", "🌻", "🌹", "🌷", "🌱", "🌿", "🍀", "🍁", "🍂"],
+      "Tech 💻": ["💻", "📱", "📲", "🔋", "🔌", "🖱️", "🕹️", "🧮", "📡", "📷"]
+    };
+
+    const gridSize = localStorage.getItem("gridSize") || "4x4";
+    const [cols, rows] = gridSize.split("x").map(Number);
+    const totalCards = cols * rows;
+    const emojiPack = emojiPacks[localStorage.getItem("emojiPack")] || emojiPacks["Smileys 😀"];
+
+    const gameContainer = document.getElementById("game");
+    gameContainer.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
+    gameContainer.style.gridTemplateRows = `repeat(${rows}, 50px)`;
+
+    let coins = parseInt(localStorage.getItem("coins") || "0");
+    let gamesPlayed = parseInt(localStorage.getItem("gamesPlayed") || "0");
+
+    document.getElementById("coins").textContent = coins;
+    document.getElementById("gamesPlayed").textContent = gamesPlayed;
+
+    let selected = [];
+    let matched = [];
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function createCards() {
+      const needed = totalCards / 2;
+      let icons = [...emojiPack].slice(0, needed);
+      icons = icons.concat(icons);
+      shuffle(icons);
+
+      icons.forEach((icon, index) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.index = index;
+        card.dataset.icon = icon;
+        card.addEventListener("click", () => revealCard(card));
+        gameContainer.appendChild(card);
+      });
+    }
+
+    function revealCard(card) {
+      if (card.classList.contains("revealed") || selected.length === 2) return;
+      card.textContent = card.dataset.icon;
+      card.classList.add("revealed");
+      selected.push(card);
+
+      if (selected.length === 2) {
+        const [a, b] = selected;
+        if (a.dataset.icon === b.dataset.icon) {
+          matched.push(a, b);
+          coins += 10;
+          localStorage.setItem("coins", coins);
+          document.getElementById("coins").textContent = coins;
+          selected = [];
+          if (matched.length === totalCards) {
+            setTimeout(() => {
+              alert("🎉 Gewonnen!");
+              gamesPlayed++;
+              localStorage.setItem("gamesPlayed", gamesPlayed);
+              document.getElementById("gamesPlayed").textContent = gamesPlayed;
+              window.location.reload();
+            }, 500);
+          }
+        } else {
+          setTimeout(() => {
+            a.textContent = "";
+            b.textContent = "";
+            a.classList.remove("revealed");
+            b.classList.remove("revealed");
+            selected = [];
+          }, 800);
+        }
+      }
+    }
+
+    createCards();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Clash 2</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: var(--background, linear-gradient(to right, #a1ffce, #faffd1));
+      transition: background 0.5s;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 10px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+    }
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .popup-content {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+    }
+    .shop-item {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Memory Clash</h1>
+  <div id="coinDisplay">💰 Coins: <span id="coins">0</span></div>
+  <div id="statDisplay">📊 Spiele gespielt: <span id="gamesPlayed">0</span></div>
+
+  <button class="button" onclick="startGame()">▶️ Spiel starten</button>
+  <button class="button" onclick="openEmojiPopup()">😊 Emoji Pack</button>
+  <button class="button" onclick="openShop()">🛒 Shop öffnen</button>
+
+  <div id="popup" class="popup" style="display:none">
+    <div class="popup-content" id="popupContent"></div>
+  </div>
+
+  <script>
+    let coins = parseInt(localStorage.getItem("coins")) || 500;
+    let gamesPlayed = parseInt(localStorage.getItem("gamesPlayed")) || 0;
+    const ownedItems = JSON.parse(localStorage.getItem("ownedItems") || '{}');
+    let selectedEmojiPack = localStorage.getItem("emojiPack") || "Smileys 😀";
+    let selectedBackground = localStorage.getItem("background") || "";
+    let selectedCardBack = localStorage.getItem("cardBack") || "🔵 Blue";
+
+    const backgrounds = [
+      { name: "Red", value: "#ff4d4d", price: 50 },
+      { name: "Blue", value: "#4d79ff", price: 50 },
+      { name: "Sunset", value: "🌇 Sunset", realValue: "linear-gradient(to right, #ff7e5f, #feb47b)", price: 200 },
+      { name: "Ocean", value: "🌊 Ocean", realValue: "linear-gradient(to right, #43cea2, #185a9d)", price: 250 },
+      { name: "Peach", value: "🍑 Peach", realValue: "linear-gradient(to right, #ffecd2, #fcb69f)", price: 200 },
+      { name: "Mint", value: "🌿 Mint", realValue: "linear-gradient(to right, #a1ffce, #faffd1)", price: 150 },
+      { name: "Dark", value: "🖤 Dark", realValue: "#222", price: 50 },
+      { name: "Lavender", value: "💜 Lavender", realValue: "#e0bbff", price: 50 },
+      { name: "Fire", value: "🔥 Fire", realValue: "linear-gradient(to right, #f12711, #f5af19)", price: 300 },
+      { name: "Sky", value: "🌤️ Sky", realValue: "linear-gradient(to right, #00c6ff, #0072ff)", price: 250 }
+    ];
+
+    const emojis = [
+      { name: "Smileys 😀", value: "😀😃😄😁😆😅😂🤣😊😇", price: 100 },
+      { name: "Animals 🐶", value: "🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯", price: 100 },
+      { name: "Food 🍕", value: "🍎🍌🍇🍓🍕🍔🍟🌭🍿🍩", price: 100 },
+      { name: "Sport ⚽", value: "⚽🏀🏈⚾🎾🏐🏉🎱🏓🏸", price: 100 },
+      { name: "Weather ☀️", value: "☀️🌤️⛅🌥️🌦️🌧️🌨️🌩️🌪️🌫️", price: 100 },
+      { name: "Tech 💻", value: "💻🖥️🖨️⌨️🖱️💾📱📲🔋🔌", price: 100 },
+      { name: "Nature 🌳", value: "🌲🌳🌴🌵🌾🌿🍀🍁🍂🍃", price: 100 },
+      { name: "Space 🌌", value: "🌕🌖🌗🌘🌑🌒🌓🌔🌙⭐", price: 100 },
+      { name: "Music 🎵", value: "🎵🎶🎼🎤🎧🎷🎸🎹🥁🎺", price: 100 },
+      { name: "Hearts ❤️", value: "❤️🧡💛💚💙💜🖤🤍🤎💖", price: 100 }
+    ];
+
+    const cardBacks = [
+      { name: "🔵 Blue", value: "🔵", price: 50 },
+      { name: "🔴 Red", value: "🔴", price: 50 },
+      { name: "🟢 Green", value: "🟢", price: 50 },
+      { name: "🟡 Yellow", value: "🟡", price: 50 },
+      { name: "🟣 Purple", value: "🟣", price: 50 },
+      { name: "💎 Diamond", value: "💎", price: 100 },
+      { name: "🔥 Fireball", value: "🔥", price: 150 },
+      { name: "🌈 Rainbow", value: "🌈", price: 200 },
+      { name: "💀 Skull", value: "💀", price: 150 },
+      { name: "🧊 Ice", value: "🧊", price: 100 }
+    ];
+
+    function updateCoins() {
+      document.getElementById("coins").innerText = coins;
+      localStorage.setItem("coins", coins);
+    }
+
+    function updateStats() {
+      document.getElementById("gamesPlayed").innerText = gamesPlayed;
+      localStorage.setItem("gamesPlayed", gamesPlayed);
+    }
+
+    function applyBackground(name) {
+      const item = backgrounds.find(b => b.name === name);
+      if (!item || !ownedItems[name]) return;
+      const bgValue = item.realValue || item.value;
+      document.body.style.setProperty('--background', bgValue);
+      localStorage.setItem("background", name);
+    }
+
+    function openPopup(items, key, title) {
+      document.getElementById("popup").style.display = 'flex';
+      const content = document.getElementById("popupContent");
+      content.innerHTML = `<h2>${title}</h2><div class='item-grid'>`;
+      items.forEach(item => {
+        const owned = ownedItems[item.name];
+        let action = `buyItem('${key}','${item.name}',${item.price})`;
+        if (key === 'shop' && owned && backgrounds.find(b => b.name === item.name)) {
+          action = `selectBackground('${item.name}')`;
+        }
+        if (key === 'cardback' && owned) {
+          action = `selectCardBack('${item.name}')`;
+        }
+        content.innerHTML += `
+          <div class='shop-item' onclick="${action}">
+            <div>${item.name}</div>
+            <div style="font-size:24px">${item.value}</div>
+            <div>${owned ? '✅ Gekauft' : '💰 ' + item.price}</div>
+          </div>
+        `;
+      });
+      content.innerHTML += `</div><br><button class='button' onclick='closePopup()'>Schließen</button>`;
+    }
+
+    function selectCardBack(name) {
+      localStorage.setItem("cardBack", name);
+      closePopup();
+    }
+
+    function selectBackground(name) {
+      applyBackground(name);
+      closePopup();
+    }
+
+    function buyItem(type, name, price) {
+      if (ownedItems[name]) {
+        alert("Schon gekauft!");
+        if (type === "emoji") localStorage.setItem("emojiPack", name);
+        return;
+      }
+      if (coins >= price) {
+        coins -= price;
+        ownedItems[name] = true;
+        localStorage.setItem("ownedItems", JSON.stringify(ownedItems));
+        updateCoins();
+        alert(`✅ ${name} für ${price} Coins gekauft!`);
+        if (type === 'shop' && backgrounds.find(b => b.name === name)) {
+          applyBackground(name);
+        }
+        closePopup();
+      } else {
+        alert("Nicht genug Coins!");
+      }
+    }
+
+    function closePopup() {
+      document.getElementById("popup").style.display = 'none';
+    }
+
+    function openShop() {
+      const fullList = [...backgrounds, ...emojis, ...cardBacks];
+      openPopup(fullList, 'shop', '🛒 Shop');
+    }
+
+    function openEmojiPopup() {
+      openPopup(emojis, 'emoji', '😊 Emoji Pack wählen');
+    }
+
+    function startGame() {
+      const sizes = ["4x4", "6x6", "8x8", "10x10", "12x12"];
+      document.getElementById("popup").style.display = 'flex';
+      const content = document.getElementById("popupContent");
+      content.innerHTML = `<h2>📐 Wähle Rastergröße</h2><div class='item-grid'>`;
+      sizes.forEach(size => {
+        content.innerHTML += `<div class='shop-item' onclick="selectGridSize('${size}')">${size}</div>`;
+      });
+      content.innerHTML += `</div><br><button class='button' onclick='closePopup()'>Abbrechen</button>`;
+    }
+
+    function selectGridSize(size) {
+      localStorage.setItem("gridSize", size);
+      gamesPlayed++;
+      updateStats();
+      closePopup();
+      window.location.href = "Gamememory.html";
+    }
+
+    updateCoins();
+    updateStats();
+    applyBackground(selectedBackground);
+  </script>
+</body>
+</html>
+
+
+
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Clash 2</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: var(--background, linear-gradient(to right, #a1ffce, #faffd1));
+      transition: background 0.5s;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 10px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+    }
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .popup-content {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      max-height: 90vh;
+      max-width: 90vw;
+      overflow-y: auto;
+    }
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+    }
+    .shop-item {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Memory Clash</h1>
+  <div id="coinDisplay">💰 Coins: <span id="coins">0</span></div>
+  <div id="statDisplay">📊 Spiele gespielt: <span id="gamesPlayed">0</span></div>
+
+  <button class="button" onclick="startGame()">▶️ Spiel starten</button>
+  <button class="button" onclick="openShop()">🛒 Shop öffnen</button>
+  <button class="button" onclick="showStats()">📈 Statistiken</button>
+
+  <div id="popup" class="popup" style="display:none">
+    <div class="popup-content" id="popupContent"></div>
+  </div>
+
+  <script>
+    let coins = parseInt(localStorage.getItem("coins")) || 500;
+    let gamesPlayed = parseInt(localStorage.getItem("gamesPlayed")) || 0;
+    const ownedItems = JSON.parse(localStorage.getItem("ownedItems") || '{}');
+    let selectedEmojiPack = localStorage.getItem("emojiPack") || "Smileys 😀";
+    let selectedBackground = localStorage.getItem("background") || "";
+    let selectedCardBack = localStorage.getItem("cardBack") || "🔵 Blue";
+
+    const backgrounds = [
+      { name: "Red", value: "#ff4d4d", price: 50 },
+      { name: "Blue", value: "#4d79ff", price: 50 },
+      { name: "Sunset", value: "🌇 Sunset", realValue: "linear-gradient(to right, #ff7e5f, #feb47b)", price: 200 },
+      { name: "Ocean", value: "🌊 Ocean", realValue: "linear-gradient(to right, #43cea2, #185a9d)", price: 250 },
+      { name: "Peach", value: "🍑 Peach", realValue: "linear-gradient(to right, #ffecd2, #fcb69f)", price: 200 },
+      { name: "Mint", value: "🌿 Mint", realValue: "linear-gradient(to right, #a1ffce, #faffd1)", price: 150 },
+      { name: "Dark", value: "🖤 Dark", realValue: "#222", price: 50 },
+      { name: "Lavender", value: "💜 Lavender", realValue: "#e0bbff", price: 50 },
+      { name: "Fire", value: "🔥 Fire", realValue: "linear-gradient(to right, #f12711, #f5af19)", price: 300 },
+      { name: "Sky", value: "🌤️ Sky", realValue: "linear-gradient(to right, #00c6ff, #0072ff)", price: 250 }
+    ];
+
+    const emojis = [
+      { name: "Smileys 😀", value: "😀😃😄😁😆😅😂🤣😊😇", price: 100 },
+      { name: "Animals 🐶", value: "🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯", price: 0},
+      { name: "Food 🍕", value: "🍎🍌🍇🍓🍕🍔🍟🌭🍿🍩", price: 100 },
+      { name: "Sport ⚽", value: "⚽🏀🏈⚾🎾🏐🏉🎱🏓🏸", price: 100 },
+      { name: "Weather ☀️", value: "☀️🌤️⛅🌥️🌦️🌧️🌨️🌩️🌪️🌫️", price: 100 },
+      { name: "Tech 💻", value: "💻🖥️🖨️⌨️🖱️💾📱📲🔋🔌", price: 100 },
+      { name: "Nature 🌳", value: "🌲🌳🌴🌵🌾🌿🍀🍁🍂🍃", price: 100 },
+      { name: "Space 🌌", value: "🌕🌖🌗🌘🌑🌒🌓🌔🌙⭐", price: 100 },
+      { name: "Music 🎵", value: "🎵🎶🎼🎤🎧🎷🎸🎹🥁🎺", price: 100 },
+      { name: "Hearts ❤️", value: "❤️🧡💛💚💙💜🖤🤍🤎💖", price: 100 }
+    ];
+
+    const cardBacks = [
+      { name: "🔵 Blue", value: "🔵", price: 50 },
+      { name: "🔴 Red", value: "🔴", price: 50 },
+      { name: "🟢 Green", value: "🟢", price: 50 },
+      { name: "🟡 Yellow", value: "🟡", price: 50 },
+      { name: "🟣 Purple", value: "🟣", price: 50 },
+      { name: "💎 Diamond", value: "💎", price: 100 },
+      { name: "🔥 Fireball", value: "🔥", price: 150 },
+      { name: "🌈 Rainbow", value: "🌈", price: 200 },
+      { name: "💀 Skull", value: "💀", price: 150 },
+      { name: "🧊 Ice", value: "🧊", price: 100 }
+    ];
+
+    function updateCoins() {
+      document.getElementById("coins").innerText = coins;
+      localStorage.setItem("coins", coins);
+    }
+
+    function updateStats() {
+      document.getElementById("gamesPlayed").innerText = gamesPlayed;
+      localStorage.setItem("gamesPlayed", gamesPlayed);
+    }
+
+    function applyBackground(name) {
+      const item = backgrounds.find(b => b.name === name);
+      if (!item || !ownedItems[name]) return;
+      const bgValue = item.realValue || item.value;
+      document.body.style.setProperty('--background', bgValue);
+      localStorage.setItem("background", name);
+    }
+
+    function openPopup(contentHtml) {
+      document.getElementById("popup").style.display = 'flex';
+      document.getElementById("popupContent").innerHTML = contentHtml;
+    }
+
+    function closePopup() {
+      document.getElementById("popup").style.display = 'none';
+    }
+
+    function buyItem(type, name, price) {
+      if (ownedItems[name]) {
+        if (type === "emoji") localStorage.setItem("emojiPack", name);
+        if (type === "cardBack") localStorage.setItem("cardBack", name);
+        if (type === "background") applyBackground(name);
+        closePopup();
+        return;
+      }
+      if (coins >= price) {
+        coins -= price;
+        ownedItems[name] = true;
+        localStorage.setItem("ownedItems", JSON.stringify(ownedItems));
+        updateCoins();
+        alert(`✅ ${name} für ${price} Coins gekauft!`);
+        if (type === "emoji") localStorage.setItem("emojiPack", name);
+        if (type === "cardBack") localStorage.setItem("cardBack", name);
+        if (type === "background") applyBackground(name);
+        closePopup();
+      } else {
+        alert("Nicht genug Coins!");
+      }
+    }
+
+    function openShop() {
+      let html = `<h2>🎨 Hintergründe</h2><div class='item-grid'>`;
+      backgrounds.forEach(item => {
+        const owned = ownedItems[item.name];
+        html += `<div class='shop-item' onclick="buyItem('background','${item.name}',${item.price})">
+          <div>${item.name}</div>
+          <div style="font-size:24px">${item.value}</div>
+          <div>${owned ? "✅ Gekauft" : "💰 " + item.price}</div>
+        </div>`;
+      });
+      html += `</div><h2>🃏 Kartenrücken</h2><div class='item-grid'>`;
+      cardBacks.forEach(item => {
+        const owned = ownedItems[item.name];
+        html += `<div class='shop-item' onclick="buyItem('cardBack','${item.name}',${item.price})">
+          <div>${item.name}</div>
+          <div style="font-size:24px">${item.value}</div>
+          <div>${owned ? "✅ Gekauft" : "💰 " + item.price}</div>
+        </div>`;
+      });
+      html += `</div><br><button class='button' onclick='closePopup()'>Schließen</button>`;
+      openPopup(html);
+    }
+
+    function startGame() {
+      let html = `<h2>📐 Wähle Rastergröße</h2><div class='item-grid'>`;
+      ["4x4", "6x6", "8x8"].forEach(size => {
+        html += `<div class='shop-item' onclick="selectEmojiPack('${size}')">${size}</div>`;
+      });
+      html += `</div><br><button class='button' onclick='closePopup()'>Abbrechen</button>`;
+      openPopup(html);
+    }
+
+    function selectEmojiPack(gridSize) {
+      let html = `<h2>😊 Emoji Pack wählen</h2><div class='item-grid'>`;
+      emojis.forEach(pack => {
+        const owned = ownedItems[pack.name];
+        html += `<div class='shop-item' onclick="finishGameStart('${gridSize}', '${pack.name}', ${pack.price})">
+          <div>${pack.name}</div>
+          <div style="font-size:24px">${pack.value}</div>
+          <div>${owned ? "✅ Gekauft" : "💰 " + pack.price}</div>
+        </div>`;
+      });
+      html += `</div><br><button class='button' onclick='closePopup()'>Abbrechen</button>`;
+      openPopup(html);
+    }
+
+    function finishGameStart(size, packName, price) {
+      if (!ownedItems[packName]) {
+        if (coins >= price) {
+          coins -= price;
+          ownedItems[packName] = true;
+          updateCoins();
+        } else {
+          alert("Nicht genug Coins!");
+          return;
+        }
+      }
+      localStorage.setItem("gridSize", size);
+      localStorage.setItem("emojiPack", packName);
+      gamesPlayed++;
+      updateStats();
+      closePopup();
+      window.location.href = "Gamememory.html";
+    }
+
+    function showStats() {
+      const statsHtml = `
+        <h2>📈 Statistiken</h2>
+        <ul style='text-align:left'>
+          <li>Spiele gespielt: ${gamesPlayed}</li>
+          <li>Beste Zeit: wird noch erfasst</li>
+          <li>Durchschnittszeit: wird noch erfasst</li>
+          <li>Gesamtspielzeit: wird noch erfasst</li>
+          <li>Gesamte Kartenpaare: wird noch erfasst</li>
+          <li>Lieblingsraster: ${localStorage.getItem("gridSize") || "–"}</li>
+          <li>Lieblings-Emoji-Pack: ${localStorage.getItem("emojiPack") || "–"}</li>
+        </ul>
+        <br><button class='button' onclick='closePopup()'>Schließen</button>
+      `;
+      openPopup(statsHtml);
+    }
+
+    updateCoins();
+    updateStats();
+    applyBackground(selectedBackground);
+  </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>🎯 Daily Quests</title>
+  <style>
+    body 
+    
+    { font-family: sans-serif;background: Linear-gradient(to right, #f2a47d , #47a7ce); padding: 20px; }
+    ul { list-style: none; padding: 0; }
+    li { margin-bottom: 10px; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    button { margin-left: 10px; }
+    
+  </style>
+</head>
+<body>
+
+<h1>🎯 Daily Quests</h1>
+<ul id="questList"></ul>
+<div id="rewardMessage"></div>
+<button onclick="goBack()">🔙 Zurück</button>
+<p id="nextQuestTimer" style="font-size: 18px; margin-top: 10px;">⏳ Neue Quest in: ...</p>
+
+<script>
+const quests = [
+  { id: "play1", description: "Spiele 1 Runde", progressKey: "gamesPlayed", target: 1 },
+  { id: "noError", description: "Gewinne ohne Fehler", progressKey: "noErrorWin", target: 1 },
+  { id: "under5Errors", description: "Gewinne mit max. 5 Fehlern", progressKey: "under5Errors", target: 1 }
+];
+
+// Items im Shop (mit Item-IDs wie "emoji_pack_2", "card_back_3", etc.)
+const shopItems = [
+  "emoji_pack_2", "emoji_pack_3", "card_back_2", "background_2"
+];
+
+function loadQuests() {
+  const today = new Date().toDateString();
+  const lastDate = localStorage.getItem("dailyReset");
+
+  if (today !== lastDate) {
+    // Reset Quests
+    quests.forEach(q => {
+      localStorage.setItem("quest_" + q.id, "0");
+      localStorage.removeItem("rewarded_" + q.id);
+    });
+    localStorage.setItem("dailyReset", today);
+  }
+
+  const list = document.getElementById("questList");
+  list.innerHTML = "";
+  quests.forEach(q => {
+    const progress = parseInt(localStorage.getItem("quest_" + q.id) || "0");
+    const done = progress >= q.target;
+    const rewarded = localStorage.getItem("rewarded_" + q.id);
+    const li = document.createElement("li");
+
+    li.textContent = `${q.description} — ${progress}/${q.target}` + (done ? " ✅" : "");
+
+    if (done && !rewarded) {
+      const claimBtn = document.createElement("button");
+      claimBtn.innerText = "🎁 Belohnung abholen";
+      claimBtn.onclick = () => claimReward(q);
+      li.appendChild(claimBtn);
+    }
+
+    list.appendChild(li);
+  });
+}
+
+function claimReward(q) {
+  const roll = Math.random();
+
+  if (roll < 0.1 && shopItems.length > 0) {
+    // 10 % Chance auf Item
+    const item = shopItems[Math.floor(Math.random() * shopItems.length)];
+    localStorage.setItem("owned_" + item, "1");
+    document.getElementById("rewardMessage").innerText = `🎉 Belohnung: Du hast ein Item freigeschaltet! (${item})`;
+  } else {
+    // 90 % Coins
+    const coins = parseInt(localStorage.getItem("coins") || "0");
+    const rewardAmount = Math.floor(Math.random() * 41) + 10; // 10–50
+    localStorage.setItem("coins", coins + rewardAmount);
+    document.getElementById("rewardMessage").innerText = `💰 +${rewardAmount} Coins erhalten!`;
+  }
+
+  localStorage.setItem("rewarded_" + q.id, "1");
+  loadQuests();
+}
+
+function goBack() {
+  window.location.href = "index.html";
+}
+
+loadQuests();
+</script>
+<script>
+  function updateTimer() {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0); // Mitternacht
+
+    const diff = midnight - now;
+
+    const hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
+    const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+    const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+
+    document.getElementById("nextQuestTimer").innerText = `⏳ Neue Quest in: ${hours}:${minutes}:${seconds}`;
+  }
+
+  setInterval(updateTimer, 1000); // jede Sekunde aktualisieren
+  updateTimer(); // sofort beim Laden
+</script>
+
+</body>
+</html>

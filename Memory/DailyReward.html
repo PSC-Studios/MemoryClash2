@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>🎁 Glücksrad</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      background: linear-gradient(to right, #a1ffce, #faffd1);
+    }
+
+    canvas {
+      margin-top: 30px;
+    }
+
+    button {
+      margin: 15px;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    #adBtn {
+      background-color: #f39c12;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 22px;
+      color: green;
+    }
+    #backBtn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: #ddd;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+}
+
+  </style>
+</head>
+<body>
+  <h1>🎰 Glücksrad</h1>
+  <canvas id="wheel" width="500" height="500"></canvas>
+  <br />
+  <button id="spinBtn" onclick="spinWheel()">🎯 Drehen</button>
+  <button id="adBtn" onclick="watchAd()">📺 Werbung ansehen</button>
+  <div id="result"></div>
+<a href="index.html" id="backBtn">🔙 Zurück</a>
+Die Zahlen des Glücksrad spiegeln nicht den echten Gewinn wieder!
+ 
+
+  <script>
+  const canvas = document.getElementById('wheel');
+  const ctx = canvas.getContext('2d');
+  const values = [5, 10, 15, 20, 25, 30, 50, 100, 500];
+  const colors = ["#f1c40f", "#e67e22", "#e74c3c", "#1abc9c", "#9b59b6", "#3498db", "#2ecc71", "#fd79a8", "#f39c12"];
+  const arcSize = 2 * Math.PI / values.length;
+  let currentRotation = 0;
+  let spinning = false;
+
+  function drawWheel(angle = 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const radius = canvas.width / 2;
+
+    for (let i = 0; i < values.length; i++) {
+      const startAngle = angle + i * arcSize;
+      const endAngle = startAngle + arcSize;
+
+      // Kreis-Segment
+      ctx.beginPath();
+      ctx.moveTo(radius, radius);
+      ctx.arc(radius, radius, radius, startAngle, endAngle);
+      ctx.fillStyle = colors[i];
+      ctx.fill();
+      ctx.closePath();
+
+      // Text
+      ctx.save();
+      ctx.translate(radius, radius);
+      ctx.rotate(startAngle + arcSize / 2);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "white";
+      ctx.font = "bold 18px sans-serif";
+      ctx.fillText(values[i] + "💰", radius - 10, 10);
+      ctx.restore();
+    }
+
+    // Pfeil oben
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(radius - 15, 30);
+    ctx.lineTo(radius + 15, 30);
+    ctx.fillStyle = "black";
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  function alreadySpunToday() {
+    const today = new Date().toDateString();
+    return localStorage.getItem("lastSpinDate") === today;
+  }
+
+  function markSpinToday() {
+    const today = new Date().toDateString();
+    localStorage.setItem("lastSpinDate", today);
+  }
+
+  function spinWheel(extraSpin = false) {
+    if (spinning) return;
+    if (alreadySpunToday() && !extraSpin) {
+      document.getElementById("result").innerText = "⏳ Du hast heute schon gedreht!";
+      return;
+    }
+
+    spinning = true;
+    document.getElementById("result").innerText = "";
+
+    const spinDegrees = Math.random() * 360 + 1800; // 5 volle Drehungen + Zufall
+    const duration = 4000;
+    const start = performance.now();
+
+    function animate(time) {
+      const elapsed = time - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      currentRotation = (spinDegrees * easeOut) % 360;
+      drawWheel(currentRotation * Math.PI / 180);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // ---- KORREKTE INDEXBERECHNUNG ----
+        const normalized = (360 - (currentRotation % 360)) % 360;
+        const segmentAngle = 360 / values.length;
+        const index = Math.floor(normalized / segmentAngle) % values.length;
+
+        const reward = values[index];
+        const coins = parseInt(localStorage.getItem("coins") || "0");
+        localStorage.setItem("coins", coins + reward);
+
+        document.getElementById("result").innerText = `🎉 Du hast ${reward} Coins gewonnen!`;
+        if (!extraSpin) markSpinToday();
+        spinning = false;
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  function watchAd() {
+    if (spinning) return;
+    alert("🎥 Werbung abgespielt! Du darfst nochmal drehen.");
+    spinWheel(true);
+  }
+
+  window.onload = () => {
+    drawWheel();
+    if (alreadySpunToday()) {
+      document.getElementById("spinBtn").disabled = true;
+      document.getElementById("spinBtn").innerText = "🎯 Morgen wieder!";
+    }
+  };
+</script>
+
+</body>
+</html>

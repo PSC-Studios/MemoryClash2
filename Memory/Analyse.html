@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Analyse</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to right, #d3cce3, #e9e4f0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+    }
+    .info {
+      font-size: 20px;
+      margin: 10px 0;
+    }
+    button {
+      margin-top: 30px;
+      padding: 12px 24px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 Analyse deines Spiels</h1>
+
+  <div id="spiele" class="info"></div>
+  <div id="fehler" class="info"></div>
+  <div id="trophies" class="info"></div>
+
+  <button onclick="goHome()">🏠 Zurück zum Hauptmenü</button>
+
+  <script>
+    // Werte abrufen
+    const spiele = parseInt(localStorage.getItem("spiele") || "0");
+    const gesamtFehler = parseInt(localStorage.getItem("gesamtFehler") || "0");
+    let trophies = parseInt(localStorage.getItem("trophies") || "0");
+    const gridSize = localStorage.getItem("gridSize") || "4x4";
+
+    // Neue Trophäen berechnen (z. B. bei jedem Analyse-Aufruf)
+    let neueTrophäen = 0;
+    if (gridSize === "4x4") neueTrophäen = 1;
+    else if (gridSize === "6x6") neueTrophäen = 4;
+    else if (gridSize === "8x8") neueTrophäen = 10;
+
+    // Hinzufügen und speichern
+    trophies += neueTrophäen;
+    localStorage.setItem("trophies", trophies);
+
+    // Anzeigen
+    
+    document.getElementById("fehler").innerText = `❌ Gesamtfehler: ${gesamtFehler}`;
+    document.getElementById("trophies").innerText = `🏆 Trophäen gesammelt: ${neueTrophäen}`;
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
